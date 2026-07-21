@@ -1,2 +1,2 @@
 # adl-theory
-Tool for explotration of dynamic effects in ADL models
+Tool for exploration of dynamic effects in ADL models
