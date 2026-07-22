@@ -69,7 +69,7 @@ def adl_stability(phi):
     phi = np.asarray(phi, dtype=float)
 
     # Polynomial coefficients
-    polynomial = np.concatenate(([1.0], -phi))
+    polynomial = np.concatenate((-phi[::-1], [1.0]))
 
     # Characteristic roots
     roots = np.roots(polynomial)
@@ -81,11 +81,12 @@ def adl_stability(phi):
     stable = np.all(np.abs(roots) > 1)
 
     return {
-        "phi": phi,
-        "polynomial": polynomial,
-        "roots": roots,
-        "inverse_roots": inverse_roots,
-        "stable": stable,
+            "phi": phi,
+            "order": len(phi),
+            "roots": roots,
+            "inverse_roots": inverse_roots,
+            "stable": stable,
+            "max_inverse_root": np.max(np.abs(inverse_roots))
     }
 
 
@@ -93,19 +94,148 @@ def adl_stability(phi):
 # Graphics
 # ============================================================
 
-def plot_inverse_roots(results):
+import numpy as np
+import plotly.graph_objects as go
+
+
+def plot_inverse_roots(stability,
+                       title="Inverse Roots of the Characteristic Polynomial"):
     """
-    Plot the inverse roots together with the unit circle.
+    Plot the inverse roots of the characteristic polynomial.
 
     Parameters
     ----------
-    results : dict
-        Output returned by adl_stability().
+    stability : dict
+        Dictionary returned by adl_stability().
+    title : str, optional
+        Figure title.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        Interactive Plotly figure.
     """
-    raise NotImplementedError(
-        "This function will be implemented in Version 0.2."
+
+    inv_roots = stability["inverse_roots"]
+    stable = stability["stable"]
+    max_root = stability["max_inverse_root"]
+    order = stability["order"]
+
+    # ------------------------------------------------------------
+    # Unit circle
+    # ------------------------------------------------------------
+
+    theta = np.linspace(0, 2*np.pi, 400)
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=np.cos(theta),
+            y=np.sin(theta),
+            mode="lines",
+            name="Unit circle",
+            line=dict(color="gray", dash="dash")
+        )
     )
 
+    # ------------------------------------------------------------
+    # Real and imaginary axes
+    # ------------------------------------------------------------
+
+    fig.add_hline(y=0,
+                  line_color="black",
+                  line_width=1)
+
+    fig.add_vline(x=0,
+                  line_color="black",
+                  line_width=1)
+
+    # ------------------------------------------------------------
+    # Inverse roots
+    # ------------------------------------------------------------
+
+    colour = "royalblue" if stable else "firebrick"
+
+    hover = []
+
+    for i, r in enumerate(inv_roots):
+
+        hover.append(
+            f"<b>Inverse root {i+1}</b><br>"
+            f"Real: {r.real:.4f}<br>"
+            f"Imaginary: {r.imag:.4f}<br>"
+            f"Modulus: {abs(r):.4f}"
+        )
+
+    fig.add_trace(
+        go.Scatter(
+            x=np.real(inv_roots),
+            y=np.imag(inv_roots),
+            mode="markers+text",
+            text=[f"r{i+1}" for i in range(len(inv_roots))],
+            textposition="top center",
+            marker=dict(
+                size=10,
+                color=colour
+            ),
+            hovertemplate="%{customdata}<extra></extra>",
+            customdata=hover,
+            name="Inverse roots"
+        )
+    )
+
+    # ------------------------------------------------------------
+    # Annotation
+    # ------------------------------------------------------------
+
+    annotation = (
+        f"<b>{'Stable' if stable else 'Unstable'} model</b><br>"
+        f"ADL({order})<br>"
+        f"Max |inverse root| = {max_root:.3f}"
+    )
+
+    fig.add_annotation(
+        x=0.02,
+        y=0.98,
+        xref="paper",
+        yref="paper",
+        text=annotation,
+        showarrow=False,
+        align="left",
+        bordercolor="black",
+        borderwidth=1,
+        bgcolor="white"
+    )
+
+    # ------------------------------------------------------------
+    # Layout
+    # ------------------------------------------------------------
+
+    fig.update_layout(
+        title=title,
+        width=700,
+        height=700,
+        template="plotly_white",
+        xaxis_title="Real",
+        yaxis_title="Imaginary",
+        legend=dict(
+            x=0.02,
+            y=0.02
+        )
+    )
+
+    fig.update_xaxes(
+        scaleanchor="y",
+        scaleratio=1,
+        zeroline=False
+    )
+
+    fig.update_yaxes(
+        zeroline=False
+    )
+
+    return fig
 
 # ============================================================
 # Dynamic effects
