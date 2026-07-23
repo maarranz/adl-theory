@@ -241,31 +241,42 @@ def plot_inverse_roots(stability,
 # Dynamic effects
 # ============================================================
 
-def adl_dynamic_effects(phi, beta, horizon=None):
-    """
-    Compute the dynamic effects of an ADL model.
 
-    Parameters
-    ----------
-    phi : array-like
-        Autoregressive coefficients.
 
-    beta : array-like
-        Distributed lag coefficients.
 
-    horizon : int, optional
-        Horizon used for computing the effects.
-        If None, an automatic rule will be used.
+# See chat for integration notes.
+import warnings
+import numpy as np
+import pandas as pd
 
-    Returns
-    -------
-    dict
-        Results of the dynamic analysis.
-    """
-    raise NotImplementedError(
-        "This function will be implemented in Version 0.3."
-    )
-
+def adl_dynamic_effects(phi,beta,horizon=None,tolerance=0.99,max_horizon=500):
+    phi=np.asarray(phi,float); beta=np.asarray(beta,float)
+    stability=adl_stability(phi.tolist())
+    stable=stability["stable"]
+    if not stable:
+        warnings.warn("Model is not dynamically stable. Dynamic effects are computed, but long-run quantities are undefined.")
+    lr=np.nan
+    if stable:
+        lr=beta.sum()/(1-phi.sum())
+    H=max_horizon if horizon is None else int(horizon)
+    psi=[]; cum=[]
+    for h in range(H+1):
+        e=beta[h] if h<len(beta) else 0.0
+        for i in range(1,min(len(phi),h)+1):
+            e+=phi[i-1]*psi[h-i]
+        psi.append(e); cum.append(e if h==0 else cum[-1]+e)
+        if horizon is None and stable and abs(cum[-1])>=tolerance*abs(lr):
+            break
+    psi=np.asarray(psi); cum=np.asarray(cum); lags=np.arange(len(psi))
+    if stable:
+        pct=100*psi/lr; pctcum=100*cum/lr
+        mean=np.sum(lags*psi)/np.sum(psi)
+        median=int(np.argmax(cum>=0.5*lr))
+    else:
+        pct=np.full(len(psi),np.nan); pctcum=pct.copy(); mean=np.nan; median=np.nan
+    table=pd.DataFrame({"Lag":lags,"Dynamic Effect":psi,"Cumulative Effect":cum,"% Total Effect":pct,"% Cumulative Effect":pctcum})
+    summary={"long_run_effect":lr,"mean_lag":mean,"median_lag":median,"horizon_used":int(lags[-1]),"tolerance":tolerance,"stable":stable}
+    return {"phi":phi.tolist(),"beta":beta.tolist(),"stability":stability,"table":table,"summary":summary}
 
 # ============================================================
 # Dynamic effect graphics
