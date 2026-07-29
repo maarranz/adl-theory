@@ -1,0 +1,12 @@
+name: adl_theory
+channels:
+  - conda-forge
+dependencies:
+  - ipykernel
+  - jupyterlab
+  - matplotlib
+  - numpy
+  - pandas
+  - plotly
+  - python=3.13
+
