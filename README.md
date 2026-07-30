@@ -17,17 +17,17 @@ long-run properties.
 
 ## Introduction
 
-Consider the ADL(\(p,q\)) model
+Consider the ADL($p,q$) model
 
-$$ y_t = \sum_{i=1}^{p}\phi_i y_{t-i} + \sum_{j=0}^{q}\beta_j x_{t-j} + u_t. $$
+$$y_t=\sum_{i=1}^{p}\phi_i y_{t-i}+\sum_{j=0}^{q}\beta_j x_{t-j}+u_t.$$
 
 Given the autoregressive coefficients
-\(\phi_1,\ldots,\phi_p\) and the distributed-lag coefficients
-\(\beta_0,\ldots,\beta_q\), the library helps answer questions such as:
+$\phi_1,\ldots,\phi_p$ and the distributed-lag coefficients
+$\beta_0,\ldots,\beta_q$, the library helps answer questions such as:
 
 - Is the model dynamically stable?
 - Where are the roots and inverse roots of the AR characteristic polynomial?
-- What is the effect of a change in \(x_t\) at each subsequent lag?
+- What is the effect of a change in $x_t$ at each subsequent lag?
 - How rapidly do the effects accumulate?
 - What is the theoretical long-run multiplier?
 - What are the mean and median lags?
@@ -147,7 +147,7 @@ kernel associated with the project environment.
 
 The following example analyzes an ADL(1,1) model:
 
-$$ y_t = 0.8y_{t-1} + 0.5x_t + 0.3x_{t-1} + u_t. $$
+$$y_t=0.8y_{t-1}+0.5x_t+0.3x_{t-1}+u_t.$$
 
 ```python
 import adl_theory as adl
@@ -186,11 +186,9 @@ adl.plot_cumulative_effects(results)
 
 For this example, the theoretical long-run effect is
 
-\[
-\frac{0.5+0.3}{1-0.8}=4.
-\]
+$$\frac{0.5+0.3}{1-0.8}=4.$$
 
-The first dynamic effects are \(0.5\), \(0.7\), \(0.56\), \(0.448\), and so
+The first dynamic effects are $0.5$, $0.7$, $0.56$, $0.448$, and so
 forth. Students are encouraged to change `phi` and `beta`, predict the
 consequences, and compare their predictions with the computed results.
 
