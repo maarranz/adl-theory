@@ -19,15 +19,7 @@ long-run properties.
 
 Consider the ADL(\(p,q\)) model
 
-$$
-y_t
-=
-\sum_{i=1}^{p}\phi_i y_{t-i}
-+
-\sum_{j=0}^{q}\beta_j x_{t-j}
-+
-u_t.
-$$
+$$ y_t = \sum_{i=1}^{p}\phi_i y_{t-i} + \sum_{j=0}^{q}\beta_j x_{t-j} + u_t. $$
 
 Given the autoregressive coefficients
 \(\phi_1,\ldots,\phi_p\) and the distributed-lag coefficients
@@ -155,17 +147,7 @@ kernel associated with the project environment.
 
 The following example analyzes an ADL(1,1) model:
 
-$$
-y_t
-=
-0.8y_{t-1}
-+
-0.5x_t
-+
-0.3x_{t-1}
-+
-u_t.
-$$
+$$ y_t = 0.8y_{t-1} + 0.5x_t + 0.3x_{t-1} + u_t. $$
 
 ```python
 import adl_theory as adl
