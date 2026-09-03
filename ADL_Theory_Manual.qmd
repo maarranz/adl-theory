@@ -1,0 +1,390 @@
+---
+title: "ADL Theory Manual"
+author:
+  - name: Miguel A. Arranz
+    affiliation: "Department of Economics, Universidad Carlos III de Madrid"
+    email: maarranz@eco.uc3m.es
+date: "September 2026"
+
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: false
+    code-tools: true
+    embed-resources: true
+    self-contained-math: true
+
+jupyter: python3
+---
+
+# Introduction
+
+`adl-theory` is an educational Python library for exploring the theoretical
+dynamic properties of Autoregressive Distributed Lag (ADL/ARDL) models.
+
+The library is designed for learning and teaching dynamic econometric models.
+Rather than estimating a model from data, the user specifies the coefficients
+of an ADL model directly and examines the dynamic behavior implied by those
+coefficients.
+
+Consider the ADL($p,q$) model
+
+$$
+y_t =
+\sum_{i=1}^{p} \phi_i y_{t-i}
++
+\sum_{j=0}^{q} \beta_j x_{t-j}
++
+u_t.
+$$
+
+The coefficients $\phi_1,\ldots,\phi_p$ determine the autoregressive dynamics,
+while $\beta_0,\ldots,\beta_q$ determine the current and lagged effects of
+changes in $x_t$ on $y_t$.
+
+Given these coefficients, `adl-theory` can be used to study:
+
+- stability of the dynamic model;
+- roots and inverse roots of the autoregressive polynomial;
+- dynamic effects of a change in $x_t$;
+- cumulative effects and the speed of adjustment;
+- the theoretical long-run effect;
+- mean and median lags; and
+- the horizon required for a specified proportion of the long-run effect
+  to be realized.
+
+The emphasis is on understanding the relationship between the coefficients
+of an ADL model and its implied dynamic behavior. The library therefore
+complements, rather than replaces, the econometric analysis of ADL models.
+
+`adl-theory` is used in the **Applied Time Series Econometrics (ATSE)** course
+at Universidad Carlos III de Madrid, but the library and this manual are
+intended to be useful independently of the course.
+
+# Setup and coefficient conventions
+
+The examples in this manual assume that `adl_theory.py` is available in the
+same project and can be imported as follows.
+
+```{python}
+import adl_theory as adl
+```
+
+The autoregressive coefficients are supplied in the list `phi`:
+
+$$
+\phi = [\phi_1,\phi_2,\ldots,\phi_p].
+$$
+
+The distributed-lag coefficients are supplied in the list `beta`:
+
+$$
+\beta = [\beta_0,\beta_1,\ldots,\beta_q].
+$$
+
+Throughout the manual we use the ADL(1,2) model
+
+$$
+y_t =
+0.5y_{t-1}
++
+0.7x_{t-1}
++
+0.3x_{t-2}
++
+u_t.
+$$
+
+The corresponding coefficient lists are
+
+```{python}
+phi = [0.5]
+beta = [0.0, 0.7, 0.3]
+```
+
+The leading zero in `beta` is important. The first element of `beta`
+corresponds to the contemporaneous coefficient $\beta_0$. In this model there
+is no contemporaneous effect of $x_t$ on $y_t$, so $\beta_0=0$.
+
+# Stability
+
+Before studying the dynamic effects of a change in $x_t$, it is useful to
+determine whether the autoregressive part of the model is stable.
+
+For an ADL($p,q$) model, consider the characteristic polynomial
+
+$$
+1-\phi_1 z-\phi_2 z^2-\cdots-\phi_p z^p=0.
+$$
+
+The model is stable when all roots of this polynomial lie outside the unit
+circle. Equivalently, all inverse roots must lie strictly inside the unit
+circle.
+
+The function `adl_stability()` performs this calculation.
+
+```{python}
+stability = adl.adl_stability(phi)
+stability
+```
+
+For the running example, the autoregressive polynomial is
+
+$$
+1-0.5z=0,
+$$
+
+so the root is $z=2$ and the inverse root is $0.5$. The model is therefore
+stable.
+
+The object returned by `adl_stability()` contains the autoregressive
+coefficients, the autoregressive order, the roots, the inverse roots, the
+stability indicator, and the largest inverse root in modulus.
+
+The stability indicator can be accessed directly:
+
+```{python}
+stability["stable"]
+```
+
+## Plotting inverse roots
+
+The inverse roots can be displayed with
+
+```{python}
+adl.plot_inverse_roots(stability)
+```
+
+The unit circle provides the stability boundary. A stable model has all
+inverse roots strictly inside the unit circle.
+
+# Dynamic effects
+
+The dynamic effects describe how a one-unit change in $x_t$ affects $y$ over
+time, holding other changes in $x$ constant.
+
+Let $\psi_h$ denote the effect on $y_{t+h}$ of a one-unit change in $x_t$.
+The contemporaneous effect is
+
+$$
+\psi_0=\beta_0.
+$$
+
+For subsequent horizons, the dynamic effects satisfy the recursion
+
+$$
+\psi_h =
+\beta_h
++
+\sum_{i=1}^{\min(p,h)}
+\phi_i\psi_{h-i},
+$$
+
+where $\beta_h=0$ for $h>q$.
+
+For the running example,
+
+$$
+\psi_0=0,
+$$
+
+$$
+\psi_1=0.7,
+$$
+
+$$
+\psi_2=0.3+0.5(0.7)=0.65,
+$$
+
+and thereafter the effects are propagated by the autoregressive term:
+
+$$
+\psi_3=0.5(0.65)=0.325,
+$$
+
+$$
+\psi_4=0.5(0.325)=0.1625.
+$$
+
+The function `adl_dynamic_effects()` calculates the complete sequence together
+with the associated cumulative effects and summary statistics.
+
+```{python}
+results = adl.adl_dynamic_effects(phi, beta)
+```
+
+The function returns a dictionary containing the coefficient lists, stability
+results, a table of dynamic effects, and a summary of the main dynamic
+properties.
+
+# Analytical long-run effect
+
+For a stable ADL model, the long-run effect of a one-unit change in $x$ is
+
+$$
+\frac{\sum_{j=0}^{q}\beta_j}
+     {1-\sum_{i=1}^{p}\phi_i}.
+$$
+
+For the running example,
+
+$$
+\frac{0+0.7+0.3}{1-0.5}=2.
+$$
+
+Thus the total long-run effect of the one-unit change in $x$ is 2.
+
+`adl-theory` calculates the long-run effect **analytically from the model
+coefficients**. It is not obtained by summing the dynamic effects over an
+arbitrarily chosen finite horizon.
+
+For unstable models, finite-horizon dynamic effects can still be examined,
+but a convergent long-run effect is not defined.
+
+# The dynamic-effects table
+
+The dynamic-effects table is obtained from the `results` object:
+
+```{python}
+results["table"]
+```
+
+The table brings together several complementary views of the adjustment
+process.
+
+**Lag** identifies the horizon $h$.
+
+**Dynamic Effect** is $\psi_h$, the effect occurring specifically at lag $h$.
+
+**Cumulative Effect** is the sum of the dynamic effects from lag 0 through
+lag $h$:
+
+$$
+\sum_{j=0}^{h}\psi_j.
+$$
+
+**% Total Effect** expresses the individual dynamic effect at lag $h$ as a
+percentage of the analytical long-run effect.
+
+**% Cumulative Effect** expresses the cumulative effect through lag $h$ as a
+percentage of the analytical long-run effect.
+
+The two percentage columns answer different questions. `% Total Effect`
+indicates how important the effect occurring at a particular lag is relative
+to the total effect. `% Cumulative Effect` indicates how far the adjustment
+process has progressed by that lag.
+
+For example, the dynamic effect at lag 1 is $0.7$. Since the analytical
+long-run effect is 2, this represents 35% of the total effect. At lag 2 the
+additional effect is $0.65$, or 32.5% of the total effect. The cumulative
+effect through lag 2 is $1.35$, so 67.5% of the long-run effect has been
+realized by that point.
+
+## Automatic horizon
+
+When no horizon is specified, `adl_dynamic_effects()` determines one
+automatically. For a stable model, the calculation continues until the
+cumulative effect reaches the proportion of the analytical long-run effect
+specified by `tolerance`.
+
+The default is `tolerance=0.99`, so the reported horizon normally captures at
+least 99% of the long-run effect. This criterion determines how far the
+dynamic adjustment is displayed; it does **not** define or approximate the
+long-run effect itself.
+
+A fixed horizon can instead be supplied through the `horizon` argument, and
+the tolerance can be changed when an automatic horizon is used.
+
+# Plotting the dynamic effects
+
+The dynamic effects reported in the table can be displayed with
+
+```{python}
+adl.plot_dynamic_effects(results)
+```
+
+Each bar corresponds to the dynamic effect at a given lag. The interactive
+hover information also reports the effect and its share of the long-run
+effect. The numerical values are those reported in the dynamic-effects table
+above.
+
+# Plotting the cumulative effects
+
+The cumulative effects reported in the table can be displayed with
+
+```{python}
+adl.plot_cumulative_effects(results)
+```
+
+The figure plots the cumulative effect against the lag and therefore provides
+a graphical view of how the effects accumulate toward the analytical
+long-run effect. The corresponding numerical values and cumulative
+percentages are reported in the dynamic-effects table.
+
+# Mean and median lags
+
+The `results` object also reports the mean and median lags of the adjustment
+process.
+
+For a stable ADL model, the mean lag is calculated analytically as
+
+$$
+\text{Mean lag}
+=
+\frac{\sum_{j=0}^{q} j\beta_j}
+     {\sum_{j=0}^{q}\beta_j}
++
+\frac{\sum_{i=1}^{p} i\phi_i}
+     {1-\sum_{i=1}^{p}\phi_i}.
+$$
+
+The first term reflects the timing implied by the distributed-lag
+coefficients, while the second reflects the additional propagation generated
+by the autoregressive dynamics.
+
+The median lag is the first lag at which the cumulative effect reaches at
+least 50% of the analytical long-run effect. Equivalently, it is the first
+lag for which
+
+$$
+\frac{\sum_{j=0}^{h}\psi_j}
+     {\text{Long-run effect}}
+\geq 0.5.
+$$
+
+The cumulative-effects graph marks the median lag when it is defined.
+
+These statistics describe the timing of the theoretical adjustment process.
+Their interpretation in particular empirical or economic settings is beyond
+the scope of this manual.
+
+# Summary table
+
+The function `adl_summary()` provides a compact formatted summary of the main
+properties calculated by `adl_dynamic_effects()`:
+
+```{python}
+adl.adl_summary(results)
+```
+
+The summary reports stability, the analytical long-run effect, mean lag,
+median lag, selected horizon, and the method used to select the horizon.
+
+`adl_summary()` returns a styled pandas table rather than printing it directly.
+In a Jupyter notebook or Quarto document, placing the function call as the
+final expression of a cell displays the formatted table.
+
+# Final remarks
+
+`adl-theory` is designed to study the theoretical dynamic behavior implied by
+specified ADL coefficients. Its purpose is not to estimate ADL models from
+data, but to make the relationship between model coefficients and dynamic
+properties transparent.
+
+The functions documented here provide tools for examining stability, dynamic
+and cumulative effects, the analytical long-run effect, adjustment timing,
+and compact graphical and tabular summaries. Empirical estimation, model
+comparison, and broader interpretation are separate tasks and are not part of
+the scope of this manual.
